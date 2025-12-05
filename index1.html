@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D粒子交互系统</title>
+    <!-- 外部库CDN引用 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection@2.0.0/dist/hand-pose-detection.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- 引入外部CSS文件 -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container"></div>
+        
+        <!-- 将切换按钮放到控制面板外部 -->
+        <button class="toggle-panel" id="toggle-panel">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        
+        <div id="ui-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">粒子控制面板</h2>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">粒子形状</label>
+                <div class="shape-selector">
+                    <button class="shape-btn active" data-shape="heart">
+                        <i class="fas fa-heart shape-icon"></i>
+                        <span>爱心</span>
+                    </button>
+                    <button class="shape-btn" data-shape="flower">
+                        <i class="fas fa-seedling shape-icon"></i>
+                        <span>花朵</span>
+                    </button>
+                    <button class="shape-btn" data-shape="saturn">
+                        <i class="fas fa-circle shape-icon"></i>
+                        <span>土星</span>
+                    </button>
+                    <button class="shape-btn" data-shape="sphere">
+                        <i class="fas fa-globe shape-icon"></i>
+                        <span>球体</span>
+                    </button>
+                    <button class="shape-btn" data-shape="star">
+                        <i class="fas fa-star shape-icon"></i>
+                        <span>星形</span>
+                    </button>
+                    <button class="shape-btn" data-shape="ring">
+                        <i class="fas fa-ring shape-icon"></i>
+                        <span>环形</span>
+                    </button>
+                    <button class="shape-btn" data-shape="cube">
+                        <i class="fas fa-cube shape-icon"></i>
+                        <span>立方体</span>
+                    </button>
+                    <button class="shape-btn" data-shape="spiral">
+                        <i class="fas fa-sync-alt shape-icon"></i>
+                        <span>螺旋</span>
+                    </button>
+                    <button class="shape-btn" data-shape="snowflake">
+                        <i class="fas fa-snowflake shape-icon"></i>
+                        <span>雪花</span>
+                    </button>
+                    <button class="shape-btn" data-shape="torus">
+                        <i class="fas fa-dizzy shape-icon"></i>
+                        <span>环形</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">粒子颜色</label>
+                <div class="color-picker-container">
+                    <input type="color" class="color-picker" id="color1" value="#ff6ec7">
+                    <input type="color" class="color-picker" id="color2" value="#7873f5">
+                </div>
+                <div class="gradient-checkbox">
+                    <input type="checkbox" id="gradient-toggle" checked>
+                    <label for="gradient-toggle">启用颜色渐变</label>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">粒子大小</label>
+                <div class="slider-container">
+                    <input type="range" min="0" max="10" value="0.33" step="0.01" class="slider" id="size-slider">
+                    <div class="slider-value" id="size-value">0.33</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">粒子数量</label>
+                <div class="slider-container">
+                    <input type="range" min="100" max="10000" value="10000" class="slider" id="count-slider">
+                    <div class="slider-value" id="count-value">10000</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">拖尾效果</label>
+                <div class="slider-container">
+                    <input type="range" min="0" max="1" value="0.5" step="0.01" class="slider" id="trail-slider">
+                    <div class="slider-value" id="trail-value">0.50</div>
+                </div>
+                <div class="gradient-checkbox">
+                    <input type="checkbox" id="trail-toggle" checked>
+                    <label for="trail-toggle">启用</label>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">缩放速度</label>
+                <div class="slider-container">
+                    <input type="range" min="0.01" max="10.0" value="10.0" step="0.01" class="slider" id="speed-slider">
+                    <div class="slider-value" id="speed-value">10.00</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">鼠标滚轮速度</label>
+                <div class="slider-container">
+                    <input type="range" min="0.01" max="10.0" value="10.0" step="0.01" class="slider" id="zoom-speed-slider">
+                    <div class="slider-value" id="zoom-speed-value">10.00</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">形状内部粒子</label>
+                <div class="gradient-checkbox">
+                    <input type="checkbox" id="inner-particles-toggle" checked>
+                    <label for="inner-particles-toggle">内部填充粒子</label>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">音乐选择</label>
+                <label class="control-label" style="font-size: 0.8rem; color: #a0a0d0; margin-bottom: 5px;">按Q重置音乐,按W播放/暂停</label>
+                <select id="music-select" style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(30, 30, 60, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); color: white; font-size: 0.9rem;">
+                    <!-- 音乐列表将动态加载 -->
+                    <option value="" disabled selected>加载音乐列表中...</option>
+                </select>
+                
+                <!-- 音乐进度条 -->
+                <div style="margin: 10px 0;">
+                    <input type="range" id="music-progress" min="0" max="100" value="0" 
+                           style="width: 100%; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); outline: none; -webkit-appearance: none; margin-bottom: 5px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #c0c0e0;">
+                        <span id="current-time">00:00</span>
+                        <span id="duration">00:00</span>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <button id="play-pause-btn" style="flex: 1; padding: 8px; border-radius: 8px; background: linear-gradient(135deg, #7873f5, #4a44c8); border: none; color: white; cursor: pointer;">
+                        <i class="fas fa-play"></i> 播放
+                    </button>
+                </div>
+            </div>
+            
+            <input type="file" id="image-upload" accept="image/*" hidden>
+            <button class="upload-btn" id="upload-trigger">
+                <i class="fas fa-upload"></i> 上传图片生成形状
+            </button>
+        </div>
+        
+        <div class="gesture-indicator">
+            <i class="fas fa-hand-spock gesture-icon"></i>
+            <div class="gesture-text">手势检测中</div>
+        </div>
+        
+        <div id="camera-container" class="hidden">
+            <video id="camera-feed" autoplay playsinline></video>
+        </div>
+        
+        <button class="fullscreen-btn" id="fullscreen-btn">
+            <i class="fas fa-expand"></i>
+        </button>
+        
+        <div id="particle-count">粒子数: 1500</div>
+        
+        <div class="instructions">
+            通过摄像头检测双手张合控制粒子缩放与扩散 | 选择形状或上传图片自定义粒子排列
+        </div>
+        
+        <div id="status" class="status">
+            <h2>3D粒子交互系统</h2>
+            <p>本系统使用Three.js创建实时交互的3D粒子系统，通过摄像头检测手势控制粒子行为。</p>
+            <p>请允许访问摄像头以使用手势控制功能。</p>
+            <button class="start-btn" id="start-btn">启动系统</button>
+        </div>
+    </div>
+
+    <!-- 引入外部JavaScript文件（放在body末尾保证DOM加载完成） -->
+    <script src="musicList.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
